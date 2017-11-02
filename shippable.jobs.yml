@@ -1,0 +1,80 @@
+jobs:
+  - name: get_k8s_latest_build_label
+    type: runSh
+    steps:
+      - IN: k8s_build_sync_timer
+      - OUT: k8s_latest_artifact
+      - OUT: k8s_stable_artifact
+      - TASK:
+        - script: curl -L -O https://raw.githubusercontent.com/k8s-unicorn/build-infra/master/get-build.sh; chmod a+x get-build.sh
+        - script: k8s_latest_release_version=$(./get-build.sh -v release/latest)
+        - script: shipctl post_resource_state k8s_latest_artifact VERSION $k8s_latest_release_version
+        - script: k8s_latest_stable_version=$(./get-build.sh -v release/stable)
+        - script: shipctl post_resource_state k8s_stable_artifact VERSION $k8s_latest_stable_version
+
+  - name: get_k8s_latest_release_build_artifact
+    type: runSh
+    on_start:
+      - NOTIFY: slack  
+      - script: echo "Start to download latest release $VERSION"
+    steps: 
+      - IN: googlecloud
+      - IN: k8s_latest_artifact
+      - IN: qingstor_key
+      - TASK:
+        - script: |
+            shippable_retry pip install --upgrade qsctl
+            release=$VERSION
+            echo $release
+            echo "access_key_id: $access_key_id" > config.yaml
+            echo "secret_access_key: $secret_access_key" >> config.yaml
+            pip install -U qsctl
+            mkdir kubernetes
+            cd kubernetes
+            gsutil cp -r gs://kubernetes-release/release/$release .
+            qsctl cp -r --force . qs://kunicorn/$release/ -c ../config.yaml --zone pek3a
+            echo $release >latest.txt
+            qsctl cp --force latest.txt qs://kunicorn/latest.txt -c ../config.yaml --zone pek3a
+    on_success:
+      - script: echo "Synced $VERSION to bucket"
+      - NOTIFY: slack
+    on_failure:
+      - script: echo "Failed to get latest build $VERSION"
+      - NOTIFY: slack
+    on_cancel:
+      - script: echo "Get latest build $VERSION canceled"
+      - NOTIFY: slack
+
+
+  - name: get_k8s_stable_release_build_artifact
+    type: runSh
+    on_start:
+      - NOTIFY: slack  
+      - script: echo "Start to download stable release $VERSION"
+    steps: 
+      - IN: googlecloud
+      - IN: qingstor_key
+      - IN: k8s_stable_artifact
+      - TASK:
+        - script: |
+            shippable_retry pip install --upgrade qsctl
+            release=$VERSION
+            echo $release
+            echo "access_key_id: $access_key_id" > config.yaml
+            echo "secret_access_key: $secret_access_key" >> config.yaml
+            pip install -U qsctl
+            mkdir kubernetes
+            cd kubernetes
+            gsutil cp -r gs://kubernetes-release/release/$release .
+            qsctl cp -r --force . qs://kunicorn/$release/ -c ../config.yaml --zone pek3a
+            echo $release >stable.txt
+            qsctl cp --force stable.txt qs://kunicorn/stable.txt -c ../config.yaml --zone pek3a
+    on_success:
+      - script: echo "Synced $VERSION to bucket"
+      - NOTIFY: slack
+    on_failure:
+      - script: echo "Failed to get stable build $VERSION"
+      - NOTIFY: slack
+    on_cancel:
+      - script: echo "Get stable build $VERSION canceled"
+      - NOTIFY: slack

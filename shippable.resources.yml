@@ -1,0 +1,34 @@
+resources:
+  - name: k8s_build_sync_timer
+    type: time
+    seed: 
+      interval: "* 2 * * *"
+
+  - name: k8s_stable_artifact
+    type: params
+    version:
+      params:
+        version: "init"
+
+  - name: k8s_latest_artifact
+    type: params
+    version:
+      params:
+        version: "init"
+
+  - name: googlecloud
+    type: cliConfig
+    integration: kunicornbot
+
+  - name: qingstor_key
+    type: params
+    version:
+      params:
+        secure: X5P8zU3ol0GLqu2Kfd0bah0DiHlfSpLdIrYxicYryFieIrPj/E9RKUx4Wjt5NNCjDHtFVgdlnONnCs1x/UOMzcxQ/fy08tE6X8gzGT6OzKUOFH49/4BhlERHAtUrx0nXLO01wzPAYE/KiJDPtuefCOIt6ykj2NFJ7NYU/1xANLQvGcsAu8rqO1t+cQbzaGEAlLHWh7xAuyxSh0x5WxjwrmC4zIb9OA0ULAX8xAFi7+gdydgw0JrIkPUaQ8WK416SBOEZQ/OU7YnstsHCZL8339TdnwPYfvyMHwsp0bqA8J8OU8+kUCG1CiRxSqKvjpQiFo+ADuxgFphCvoekq1a75w==
+
+  - name: slack
+    type: notification
+    integration: slack
+    pointer: 
+      recipients:
+        - "#ci-notification"

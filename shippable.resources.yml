@@ -2,7 +2,7 @@ resources:
   - name: k8s_build_sync_timer
     type: time
     seed: 
-      interval: "* 2 * * *"
+      interval: "0 0 * * *"
 
   - name: k8s_stable_artifact
     type: params

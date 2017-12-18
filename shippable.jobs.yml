@@ -8,9 +8,9 @@ jobs:
       - TASK:
         - script: curl -L -O https://raw.githubusercontent.com/k8s-unicorn/build-infra/master/get-build.sh; chmod a+x get-build.sh
         - script: k8s_latest_release_version=$(./get-build.sh -v release/latest)
-        - script: shipctl post_resource_state k8s_latest_artifact VERSION $k8s_latest_release_version
+        - script: shipctl put_resource_state k8s_latest_artifact VERSION $k8s_latest_release_version
         - script: k8s_latest_stable_version=$(./get-build.sh -v release/stable)
-        - script: shipctl post_resource_state k8s_stable_artifact VERSION $k8s_latest_stable_version
+        - script: shipctl put_resource_state k8s_stable_artifact VERSION $k8s_latest_stable_version
 
   - name: get_k8s_latest_release_build_artifact
     type: runSh

@@ -31,10 +31,14 @@ jobs:
             pip install -U qsctl
             mkdir kubernetes
             cd kubernetes
-            gsutil cp -r gs://kubernetes-release/release/$release .
-            qsctl cp -r --force . qs://kunicorn/$release/ -c ../config.yaml --zone pek3a
+            qstorpath=qs://kunicorn/kubernetes
+
+            gsutil cp -r gs://kubernetes-release/release/$release/* .
+            qsctl cp -r --force . $qstorpath/$release -c ../config.yaml --zone pek3a
             echo $release >latest.txt
-            qsctl cp --force latest.txt qs://kunicorn/latest.txt -c ../config.yaml --zone pek3a
+            qsctl cp --force latest.txt $qstorpath/latest.txt -c ../config.yaml --zone pek3a
+            cd ..
+            rm -rf kubernetes
     on_success:
       - script: echo "Synced $VERSION to bucket"
       - NOTIFY: slack
@@ -65,10 +69,14 @@ jobs:
             pip install -U qsctl
             mkdir kubernetes
             cd kubernetes
-            gsutil cp -r gs://kubernetes-release/release/$release .
-            qsctl cp -r --force . qs://kunicorn/$release/ -c ../config.yaml --zone pek3a
+            qstorpath=qs://kunicorn/kubernetes
+
+            gsutil cp -r gs://kubernetes-release/release/$release/* .
+            qsctl cp -r --force . $qstorpath/$release -c ../config.yaml --zone pek3a
             echo $release >stable.txt
-            qsctl cp --force stable.txt qs://kunicorn/stable.txt -c ../config.yaml --zone pek3a
+            qsctl cp --force stable.txt $qstorpath/stable.txt -c ../config.yaml --zone pek3a
+            cd ..
+            rm -rf kubernetes
     on_success:
       - script: echo "Synced $VERSION to bucket"
       - NOTIFY: slack
@@ -78,3 +86,27 @@ jobs:
     on_cancel:
       - script: echo "Get stable build $VERSION canceled"
       - NOTIFY: slack
+
+  - name: get_docker_stable_release_from_tuna
+    type: runSh
+    on_start:
+      - NOTIFY: slack  
+      - script: echo "Start to download stable release $VERSION"
+    steps: 
+      - IN: qingstor_key
+      - IN: k8s_build_sync_timer
+      - TASK:
+        - script: |
+            shippable_retry pip install --upgrade qsctl
+            echo "access_key_id: $access_key_id" > config.yaml
+            echo "secret_access_key: $secret_access_key" >> config.yaml
+            pip install -U qsctl
+            mkdir docker
+            cd docker
+            qstore_docker_path=qs://kunicorn/docker
+            rsync -avz --delete -k --max-size=5g rsync://mirrors.tuna.tsinghua.edu.cn/docker-ce/ .
+            qsctl cp -r --force . $qstore_docker_path -c ../config.yaml --zone pek3a
+            cd ..
+            rm -rf docker
+
+

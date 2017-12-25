@@ -2,4 +2,4 @@
 
 kunicorn build infrastructure
 
-sync kubernetes build artifacts from google storage bucket
+sync kubernetes build artifacts from software repo

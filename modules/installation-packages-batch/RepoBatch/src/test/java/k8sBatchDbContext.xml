@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd
+  http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-2.0.xsd">
+
+
+	<!-- define the job repository -->
+	<bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean"/>
+
+	<!--define the launcher and pass the jobRepository as setter injection -->
+	<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+		<property name="jobRepository" ref="jobRepository" />
+	</bean>
+
+	<!-- multi-threading -->
+	<bean id="taskExecutor" class="org.springframework.core.task.SimpleAsyncTaskExecutor">
+		<property name="concurrencyLimit" value="3" />
+	</bean>
+
+	<bean id="transactionManager"		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<job id="simpleJob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="simpleStep">
+			<tasklet task-executor="taskExecutor">
+				<chunk reader="kubeDbReader" processor="kubeDbProcessor" writer="kubeWriter" commit-interval="1">
+				</chunk>
+			</tasklet>
+		</step>
+	</job>
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/luigi" />
+		<property name="username" value="root" />
+		<property name="password" value="zhu88jie" />
+	</bean>
+
+	<!-- processors -->
+
+	<!-- readers -->
+	<bean id="kubeDbReader"	class="org.springframework.batch.item.database.JdbcPagingItemReader">
+		<property name="dataSource" ref="dataSource" />
+		<property name="rowMapper" ref="kubeDbMapper" />
+		<property name="queryProvider" ref="urlQueryProvider" />
+	</bean>
+	<!-- processor -->
+	<bean id="kubeDbProcessor" class="com.qingcloud.k8s.batch.processor.KubeDbProcessor"/>
+	<!-- writer -->
+	<bean id="kubeWriter" class="com.qingcloud.k8s.batch.writer.KubeWriter"/>	
+	<bean id="kubeDbMapper"
+		class="com.qingcloud.k8s.batch.reader.RemoteFileDbMapper" />
+
+	<bean id="urlQueryProvider" class="org.springframework.batch.item.database.support.MySqlPagingQueryProvider">
+		<property name="selectClause" value="SELECT url" />
+		<property name="fromClause" value="FROM luigi.source_file_info" />
+		<property name="sortKeys">
+		   <map>
+	<entry key="url" value="ASCENDING" />
+   </map>
+		</property>
+	</bean>
+</beans>
